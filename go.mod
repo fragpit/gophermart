@@ -1,3 +1,3 @@
-module fragpit/go-musthave-diploma
+module fragpit/gophermart
 
 go 1.24.5

@@ -31,7 +31,10 @@ services:
     working_dir: /app
     volumes:
       - ./cmd/accrual/accrual_linux_amd64:/usr/local/bin/accrual:ro
-    command: ["/usr/local/bin/accrual"]
+    command:
+      - "/usr/local/bin/accrual"
+      # - "-d"
+      # - "postgres://postgres:postgres@postgres:5432/gophermart?sslmode=disable"
     ports:
       - "8081:8080"
     restart: unless-stopped
