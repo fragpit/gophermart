@@ -1,0 +1,62 @@
+x-env-defaults: &env-defaults
+  LOG_LEVEL: debug
+  DEBUG: true
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: gophermart-postgres
+    environment:
+      <<: *env-defaults
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gophermart
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  accrual:
+    image: debian:12-slim
+    platform: linux/amd64
+    container_name: accrual
+    environment:
+      <<: *env-defaults
+    working_dir: /app
+    volumes:
+      - ./cmd/accrual/accrual_linux_amd64:/usr/local/bin/accrual:ro
+    command: ["/usr/local/bin/accrual"]
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+  gophermart:
+    image: debian:12-slim
+    platform: linux/amd64
+    container_name: gophermart
+    working_dir: /app
+    volumes:
+      - ./bin/gophermart:/usr/local/bin/gophermart:ro
+    command: ["/usr/local/bin/gophermart"]
+    environment:
+      <<: *env-defaults
+      RUN_ADDRESS: ":8080"
+      DATABASE_URI: "postgres://postgres:postgres@postgres:5432/gophermart?sslmode=disable"
+      ACCRUAL_SYSTEM_ADDRESS: "http://accrual:8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      accrual:
+        condition: service_started
+    restart: no
+
+volumes:
+  pgdata:
