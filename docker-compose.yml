@@ -1,5 +1,5 @@
 x-env-defaults: &env-defaults
-  LOG_LEVEL: debug
+  LOG_LEVEL: "debug"
   DEBUG: true
 
 services:
