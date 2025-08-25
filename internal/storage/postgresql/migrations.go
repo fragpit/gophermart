@@ -26,23 +26,27 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 			Name:     "init",
 			UpSQL: `
 			CREATE TABLE IF NOT EXISTS users (
-					id TEXT PRIMARY KEY,
-					login TEXT NOT NULL,
-					password_hash TEXT NOT NULL
+					id SERIAL PRIMARY KEY,
+					login VARCHAR(255) UNIQUE NOT NULL,
+					password_hash VARCHAR(255) NOT NULL,
+					created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);
 
 			CREATE TABLE IF NOT EXISTS orders (
-					id TEXT PRIMARY KEY,
-					user_id TEXT NOT NULL,
-					number INT NOT NULL,
-					status TEXT NOT NULL
+					id SERIAL PRIMARY KEY,
+					user_id INTEGER NOT NULL REFERENCES users(id),
+					number VARCHAR(255) UNIQUE NOT NULL,
+					status VARCHAR(20) NOT NULL DEFAULT 'NEW',
+					accrual DECIMAL(10,2),
+					uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);
 
 			CREATE TABLE IF NOT EXISTS withdrawals (
-					id TEXT PRIMARY KEY,
-					user_id TEXT NOT NULL,
-					order_number INT NOT NULL,
-					sum F
+					id SERIAL PRIMARY KEY,
+					user_id INTEGER NOT NULL REFERENCES users(id),
+					order_number VARCHAR(255) NOT NULL,
+					sum DECIMAL(10,2) NOT NULL,
+					processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);
 
 			`,

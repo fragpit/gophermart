@@ -53,6 +53,10 @@ func main() {
 	logger.Info("starting server", slog.String("address", cfg.RunAddress))
 
 	_, err = postgresql.NewStorage(ctx, cfg.DatabaseURI)
+	if err != nil {
+		slog.Error("failed to initialize storage", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	logger.Info("server shut down")
 }

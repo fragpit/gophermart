@@ -28,6 +28,11 @@ func NewStorage(ctx context.Context, dbDSN string) (*Storage, error) {
 		return nil, fmt.Errorf("db ping error: %w", err)
 	}
 
+	_, err = db.Exec(ctx, "SET timezone = 'UTC'")
+	if err != nil {
+		return nil, fmt.Errorf("error setting timezone to UTC: %w", err)
+	}
+
 	if err := runMigrations(ctx, db); err != nil {
 		return nil, fmt.Errorf("error running migrations: %w", err)
 	}
