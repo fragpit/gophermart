@@ -1,0 +1,44 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  BUILD_DIR: "{{ .ROOT_DIR }}/bin"
+
+env:
+  LOG_LEVEL: "debug"
+
+tasks:
+  generate:
+    cmds:
+      - go generate -v ./...
+
+  test:
+    cmds:
+      - task: generate
+      - go test -v ./...
+
+  lint:
+    cmds:
+      - golangci-lint-v2 run
+
+  test-lint:
+    cmds:
+      - task: test
+      - task: lint
+
+  build:
+    cmds:
+      - mkdir -p {{ .BUILD_DIR }}
+      - go build -o {{ .BUILD_DIR }} {{ .ROOT_DIR }}/cmd/...
+
+  build-linux:
+    desc: Build Linux amd64 gophermart binary into ./bin/gophermart
+    cmds:
+      - mkdir -p {{ .BUILD_DIR }}
+      - env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o {{ .ROOT_DIR }}/bin/gophermart {{ .ROOT_DIR }}/cmd/gophermart
+
+  compose-up:
+    cmds:
+      - task: build-linux
+      - docker compose --file {{ .ROOT_DIR }}/docker-compose.yml up
