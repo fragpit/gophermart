@@ -1,7 +1,18 @@
-package user
+package model
 
-type User struct{}
+import "context"
 
-type UserRepository interface{}
+type UserRepository interface {
+	Create(ctx context.Context, login, passwordHash string) error
+	GetByLogin(ctx context.Context, login string) (*User, error)
+}
 
-func NewUser() {}
+type User struct {
+	ID           int
+	Login        string
+	PasswordHash string
+}
+
+func NewUser(login string) *User {
+	return &User{}
+}

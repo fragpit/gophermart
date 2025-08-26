@@ -52,6 +52,7 @@ services:
       RUN_ADDRESS: ":8080"
       DATABASE_URI: "postgres://postgres:postgres@postgres:5432/gophermart?sslmode=disable"
       ACCRUAL_SYSTEM_ADDRESS: "http://accrual:8080"
+      JWT_SECRET: "HANePj69NGoLvSghkxOBq3Oga1GMuGwZIqhrdjzIVQM="
     ports:
       - "8080:8080"
     depends_on:

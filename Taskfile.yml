@@ -41,4 +41,7 @@ tasks:
   compose-up:
     cmds:
       - task: build-linux
-      - docker compose --file {{ .ROOT_DIR }}/docker-compose.yml up
+      - docker compose
+          --file {{ .ROOT_DIR }}/docker-compose.yml
+          up
+          --pull never

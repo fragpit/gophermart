@@ -10,7 +10,9 @@ import (
 	"syscall"
 
 	"github.com/fragpit/gophermart/internal/api/router"
+	"github.com/fragpit/gophermart/internal/auth"
 	"github.com/fragpit/gophermart/internal/config"
+	"github.com/fragpit/gophermart/internal/healthcheck"
 	"github.com/fragpit/gophermart/internal/storage/postgresql"
 )
 
@@ -53,13 +55,20 @@ func main() {
 
 	logger.Info("starting server", slog.String("address", cfg.RunAddress))
 
-	_, err = postgresql.NewStorage(ctx, cfg.DatabaseURI)
+	pgStorage, err := postgresql.NewStorage(ctx, cfg.DatabaseURI)
 	if err != nil {
 		slog.Error("failed to initialize storage", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	router := router.NewRouter(logger)
+	authSvc := auth.NewAuthService(pgStorage)
+	healthSvc := healthcheck.NewHealthcheckService(pgStorage)
+
+	routerDeps := router.StorageDeps{
+		HealthService: healthSvc,
+		AuthService:   authSvc,
+	}
+	router := router.NewRouter(routerDeps)
 	if err := router.Run(ctx, cfg.RunAddress); err != nil {
 		logger.Error("failed to start api", slog.Any("error", err))
 		logger.Info("shutting down app")

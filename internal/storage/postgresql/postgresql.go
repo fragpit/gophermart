@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/fragpit/gophermart/internal/healthcheck"
+	"github.com/fragpit/gophermart/internal/model"
 	"github.com/fragpit/gophermart/internal/utils/retry"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-// var _ repository.Repository = (*Storage)(nil)
 
 type Storage struct {
 	DB      *pgxpool.Pool
@@ -54,4 +54,38 @@ func NewStorage(ctx context.Context, dbDSN string) (*Storage, error) {
 		DB:      db,
 		retrier: retrier,
 	}, nil
+}
+
+var _ healthcheck.HealthRepository = (*Storage)(nil)
+
+func (s *Storage) Ping(ctx context.Context) error {
+	if s.DB == nil {
+		return fmt.Errorf("database connection not initialized")
+	}
+
+	op := func(ctx context.Context) error {
+		return s.DB.Ping(ctx)
+	}
+
+	if err := s.retrier.Do(ctx, op); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var _ model.UserRepository = (*Storage)(nil)
+
+func (s *Storage) Create(
+	ctx context.Context,
+	login, passwordHash string,
+) error {
+	return nil
+}
+
+func (s *Storage) GetByLogin(
+	ctx context.Context,
+	login string,
+) (*model.User, error) {
+	return nil, nil
 }

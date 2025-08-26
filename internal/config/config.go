@@ -17,6 +17,8 @@ type Config struct {
 	RunAddress           string
 	DatabaseURI          string
 	AccrualSystemAddress string
+	JWTSecret            string
+	JWTTTL               string
 }
 
 func NewConfig() (*Config, error) {
@@ -24,6 +26,12 @@ func NewConfig() (*Config, error) {
 	runAddress := flag.String("a", ":8080", "listen address")
 	databaseURI := flag.String("d", "", "database connection string")
 	accrualSysAddress := flag.String("r", "", "accrual system address")
+	JWTSecret := flag.String(
+		"jwt-secret",
+		"",
+		"jwt secret key for token encryption",
+	)
+	JWTTTL := flag.String("jwt-ttl", "24h", "jwt token ttl (default: 24h)")
 
 	flag.Parse()
 
@@ -47,6 +55,16 @@ func NewConfig() (*Config, error) {
 		finalAccrualSysAddress = env
 	}
 
+	finalJWTSecret := *JWTSecret
+	if env := os.Getenv("JWT_SECRET"); env != "" {
+		finalJWTSecret = env
+	}
+
+	finalJWTTTL := *JWTTTL
+	if env := os.Getenv("JWT_TTL"); env != "" {
+		finalJWTTTL = env
+	}
+
 	if finalDatabaseURI == "" {
 		return nil, fmt.Errorf("database URI error %w", ErrParameterNotSet)
 	}
@@ -55,11 +73,17 @@ func NewConfig() (*Config, error) {
 		return nil, fmt.Errorf("accrual system address error %w", ErrParameterNotSet)
 	}
 
+	if finalJWTSecret == "" {
+		return nil, fmt.Errorf("no jwt token set %w", ErrParameterNotSet)
+	}
+
 	return &Config{
 		LogLevel:             finalLogLevel,
 		RunAddress:           finalRunAddress,
 		DatabaseURI:          finalDatabaseURI,
 		AccrualSystemAddress: finalAccrualSysAddress,
+		JWTSecret:            finalJWTSecret,
+		JWTTTL:               finalJWTTTL,
 	}, nil
 }
 
