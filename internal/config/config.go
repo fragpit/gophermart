@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
 var (
@@ -18,7 +19,7 @@ type Config struct {
 	DatabaseURI          string
 	AccrualSystemAddress string
 	JWTSecret            string
-	JWTTTL               string
+	JWTTTL               time.Duration
 }
 
 func NewConfig() (*Config, error) {
@@ -70,11 +71,19 @@ func NewConfig() (*Config, error) {
 	}
 
 	if finalAccrualSysAddress == "" {
-		return nil, fmt.Errorf("accrual system address error %w", ErrParameterNotSet)
+		return nil, fmt.Errorf(
+			"accrual system address error %w",
+			ErrParameterNotSet,
+		)
 	}
 
 	if finalJWTSecret == "" {
 		return nil, fmt.Errorf("no jwt token set %w", ErrParameterNotSet)
+	}
+
+	jwtTTLDuration, err := time.ParseDuration(finalJWTTTL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid jwt ttl %q: %w", finalJWTTTL, err)
 	}
 
 	return &Config{
@@ -83,7 +92,7 @@ func NewConfig() (*Config, error) {
 		DatabaseURI:          finalDatabaseURI,
 		AccrualSystemAddress: finalAccrualSysAddress,
 		JWTSecret:            finalJWTSecret,
-		JWTTTL:               finalJWTTTL,
+		JWTTTL:               jwtTTLDuration,
 	}, nil
 }
 

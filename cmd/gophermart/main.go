@@ -61,12 +61,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	authSvc := auth.NewAuthService(pgStorage)
+	authSvc := auth.NewAuthService(pgStorage, cfg.JWTSecret, cfg.JWTTTL)
 	healthSvc := healthcheck.NewHealthcheckService(pgStorage)
 
 	routerDeps := router.StorageDeps{
 		HealthService: healthSvc,
 		AuthService:   authSvc,
+		JWTSecret:     cfg.JWTSecret,
 	}
 	router := router.NewRouter(routerDeps)
 	if err := router.Run(ctx, cfg.RunAddress); err != nil {

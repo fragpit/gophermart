@@ -45,3 +45,7 @@ tasks:
           --file {{ .ROOT_DIR }}/docker-compose.yml
           up
           --pull never
+
+  compose-clean:
+    cmds:
+      - docker compose down -v --remove-orphans

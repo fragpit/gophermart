@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fragpit/gophermart/internal/api/handlers"
+	"github.com/fragpit/gophermart/internal/api/middleware" // Keeping middleware import
 )
 
 const apiShutdownTimeout = 5 * time.Second
@@ -14,8 +15,7 @@ const apiShutdownTimeout = 5 * time.Second
 type StorageDeps struct {
 	HealthService handlers.HealthService
 	AuthService   handlers.AuthService
-	// model.OrderRepository
-	// model.WithdrawalRepository
+	JWTSecret     string
 }
 
 type Router struct {
@@ -25,7 +25,11 @@ type Router struct {
 func NewRouter(deps StorageDeps) *Router {
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /health", handlers.NewHealthHandler(deps.HealthService))
+	authMW := middleware.RequireJWT(deps.JWTSecret)
+	mux.Handle(
+		"GET /health",
+		authMW(handlers.NewHealthHandler(deps.HealthService)),
+	)
 
 	mux.Handle(
 		"POST /api/user/register",
@@ -36,13 +40,13 @@ func NewRouter(deps StorageDeps) *Router {
 		handlers.NewAuthLoginHandler(deps.AuthService),
 	)
 
-	mux.Handle("GET /api/user/orders", http.NotFoundHandler())
-	mux.Handle("POST /api/user/orders", http.NotFoundHandler())
+	mux.Handle("GET /api/user/orders", authMW(http.NotFoundHandler()))
+	mux.Handle("POST /api/user/orders", authMW(http.NotFoundHandler()))
 
-	mux.Handle("GET /api/user/balance", http.NotFoundHandler())
-	mux.Handle("POST /api/user/balance/withdraw", http.NotFoundHandler())
+	mux.Handle("GET /api/user/balance", authMW(http.NotFoundHandler()))
+	mux.Handle("POST /api/user/balance/withdraw", authMW(http.NotFoundHandler()))
 
-	mux.Handle("GET /api/user/withdrawals", http.NotFoundHandler())
+	mux.Handle("GET /api/user/withdrawals", authMW(http.NotFoundHandler()))
 
 	return &Router{
 		router: mux,
