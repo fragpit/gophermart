@@ -13,9 +13,13 @@ import (
 const apiShutdownTimeout = 5 * time.Second
 
 type StorageDeps struct {
-	HealthService handlers.HealthService
-	AuthService   handlers.AuthService
-	JWTSecret     string
+	JWTSecret string
+
+	HealthService      handlers.HealthService
+	AuthService        handlers.AuthService
+	OrdersService      handlers.OrdersService
+	BalanceService     handlers.BalanceService
+	WithdrawalsService handlers.WithdrawalsService
 }
 
 type Router struct {
@@ -26,9 +30,10 @@ func NewRouter(deps StorageDeps) *Router {
 	mux := http.NewServeMux()
 
 	authMW := middleware.RequireJWT(deps.JWTSecret)
+
 	mux.Handle(
 		"GET /health",
-		authMW(handlers.NewHealthHandler(deps.HealthService)),
+		handlers.NewHealthHandler(deps.HealthService),
 	)
 
 	mux.Handle(
@@ -40,13 +45,28 @@ func NewRouter(deps StorageDeps) *Router {
 		handlers.NewAuthLoginHandler(deps.AuthService),
 	)
 
-	mux.Handle("GET /api/user/orders", authMW(http.NotFoundHandler()))
-	mux.Handle("POST /api/user/orders", authMW(http.NotFoundHandler()))
+	mux.Handle(
+		"GET /api/user/orders",
+		authMW(handlers.NewOrdersGetHandler(deps.OrdersService)),
+	)
+	mux.Handle(
+		"POST /api/user/orders",
+		authMW(handlers.NewOrdersPostHandler(deps.OrdersService)),
+	)
 
-	mux.Handle("GET /api/user/balance", authMW(http.NotFoundHandler()))
-	mux.Handle("POST /api/user/balance/withdraw", authMW(http.NotFoundHandler()))
+	mux.Handle(
+		"GET /api/user/balance",
+		authMW(handlers.NewBalanceHandler(deps.BalanceService)),
+	)
+	mux.Handle(
+		"POST /api/user/balance/withdraw",
+		authMW(handlers.NewBalanceWithdrawHandler(deps.BalanceService)),
+	)
 
-	mux.Handle("GET /api/user/withdrawals", authMW(http.NotFoundHandler()))
+	mux.Handle(
+		"GET /api/user/withdrawals",
+		authMW(handlers.NewWithdrawalsHandler(deps.WithdrawalsService)),
+	)
 
 	return &Router{
 		router: mux,

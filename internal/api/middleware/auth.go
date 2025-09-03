@@ -6,21 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/fragpit/gophermart/internal/auth"
+	"github.com/fragpit/gophermart/internal/service/auth"
 )
 
 type ctxKey string
 
-const ctxUserIDKey ctxKey = "user_id"
-
-func UserIDFromContext(ctx context.Context) (int, bool) {
-	v := ctx.Value(ctxUserIDKey)
-	if v == nil {
-		return 0, false
-	}
-	id, ok := v.(int)
-	return id, ok
-}
+const СtxUserIDKey ctxKey = "user_id"
 
 func RequireJWT(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -62,7 +53,7 @@ func RequireJWT(secret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), ctxUserIDKey, userID)
+			ctx := context.WithValue(r.Context(), СtxUserIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

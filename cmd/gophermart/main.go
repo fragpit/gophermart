@@ -10,9 +10,12 @@ import (
 	"syscall"
 
 	"github.com/fragpit/gophermart/internal/api/router"
-	"github.com/fragpit/gophermart/internal/auth"
 	"github.com/fragpit/gophermart/internal/config"
-	"github.com/fragpit/gophermart/internal/healthcheck"
+	"github.com/fragpit/gophermart/internal/service/auth"
+	"github.com/fragpit/gophermart/internal/service/balance"
+	"github.com/fragpit/gophermart/internal/service/healthcheck"
+	"github.com/fragpit/gophermart/internal/service/orders"
+	"github.com/fragpit/gophermart/internal/service/withdrawals"
 	"github.com/fragpit/gophermart/internal/storage/postgresql"
 )
 
@@ -61,13 +64,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	authSvc := auth.NewAuthService(pgStorage, cfg.JWTSecret, cfg.JWTTTL)
 	healthSvc := healthcheck.NewHealthcheckService(pgStorage)
+	authSvc := auth.NewAuthService(pgStorage, cfg.JWTSecret, cfg.JWTTTL)
+	ordersSvc := orders.NewOrdersService(pgStorage)
+	balanceSvc := balance.NewBalanceService(pgStorage)
+	withdrawalsSvc := withdrawals.NewWithdrawalsService(pgStorage)
 
 	routerDeps := router.StorageDeps{
-		HealthService: healthSvc,
-		AuthService:   authSvc,
-		JWTSecret:     cfg.JWTSecret,
+		JWTSecret:          cfg.JWTSecret,
+		HealthService:      healthSvc,
+		AuthService:        authSvc,
+		OrdersService:      ordersSvc,
+		BalanceService:     balanceSvc,
+		WithdrawalsService: withdrawalsSvc,
 	}
 	router := router.NewRouter(routerDeps)
 	if err := router.Run(ctx, cfg.RunAddress); err != nil {

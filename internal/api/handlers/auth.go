@@ -25,7 +25,6 @@ type authResponse struct {
 	Token string `json:"token"`
 }
 
-// `POST /api/user/register` — регистрация пользователя;
 func NewAuthRegisterHandler(svc AuthService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -114,7 +113,6 @@ func NewAuthRegisterHandler(svc AuthService) http.Handler {
 	})
 }
 
-// `POST /api/user/login` — аутентификация пользователя;
 func NewAuthLoginHandler(svc AuthService) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Type") != "application/json" {

@@ -1,3 +1,18 @@
 package model
 
-type WithdrawalRepository interface{}
+import (
+	"context"
+	"time"
+)
+
+type WithdrawalsRepository interface {
+	GetWithdrawalsByUserID(ctx context.Context, userID int) ([]Withdrawal, error)
+}
+
+type Withdrawal struct {
+	ID          int
+	UserID      int
+	OrderNum    string
+	Sum         int
+	ProcessedAt time.Time
+}

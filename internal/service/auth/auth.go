@@ -6,11 +6,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/fragpit/gophermart/internal/api/handlers"
 	"github.com/fragpit/gophermart/internal/model"
 )
 
-var _ handlers.AuthService = (*AuthService)(nil)
+// var _ handlers.AuthService = (*AuthService)(nil)
 
 type AuthService struct {
 	repo model.UserRepository

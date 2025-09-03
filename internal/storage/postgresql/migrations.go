@@ -37,7 +37,7 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 					user_id INTEGER NOT NULL REFERENCES users(id),
 					number VARCHAR(255) UNIQUE NOT NULL,
 					status VARCHAR(20) NOT NULL DEFAULT 'NEW',
-					accrual DECIMAL(10,2),
+					accrual INTEGER NOT NULL DEFAULT 0,
 					uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);
 
@@ -45,12 +45,21 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 					id SERIAL PRIMARY KEY,
 					user_id INTEGER NOT NULL REFERENCES users(id),
 					order_number VARCHAR(255) NOT NULL,
-					sum DECIMAL(10,2) NOT NULL,
+					sum INTEGER NOT NULL,
 					processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);
 
+			CREATE INDEX IF NOT EXISTS idx_orders_user_id_status
+			ON orders (user_id, status);
+
+			CREATE INDEX IF NOT EXISTS idx_withdrawals_user_id
+			ON withdrawals (user_id);
+
 			`,
 			DownSQL: `
+			DROP INDEX IF EXISTS idx_orders_user_id_status;
+            DROP INDEX IF EXISTS idx_withdrawals_user_id;
+
 			DROP TABLE IF EXISTS users;
 			DROP TABLE IF EXISTS orders;
 			DROP TABLE IF EXISTS withdrawals;

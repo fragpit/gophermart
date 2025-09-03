@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
-	"github.com/fragpit/gophermart/internal/healthcheck"
 	"github.com/fragpit/gophermart/internal/model"
+	"github.com/fragpit/gophermart/internal/service/healthcheck"
 	"github.com/fragpit/gophermart/internal/utils/retry"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
@@ -125,4 +126,183 @@ func (s *Storage) GetByLogin(
 	}
 
 	return u, nil
+}
+
+var _ model.OrdersRepository = (*Storage)(nil)
+
+func (s *Storage) GetOrdersByUserID(
+	ctx context.Context,
+	userID int,
+) ([]model.Order, error) {
+	q := `
+	SELECT id, number, status, accrual, uploaded_at
+	FROM orders
+	WHERE user_id = $1
+	ORDER BY id DESC
+	`
+
+	var (
+		orderID     int
+		orderNumber string
+		status      model.OrderStatus
+		accrual     int
+		uploadedAt  time.Time
+	)
+	rows, err := s.DB.Query(ctx, q, userID)
+	if err != nil {
+		return nil, fmt.Errorf("orders query error: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []model.Order
+	for rows.Next() {
+		if err := rows.Scan(
+			&orderID,
+			&orderNumber,
+			&status,
+			&accrual,
+			&uploadedAt,
+		); err != nil {
+			return nil, fmt.Errorf("error reading values: %w", err)
+		}
+		order := model.Order{
+			ID:         orderID,
+			UserID:     userID,
+			Number:     orderNumber,
+			Status:     status,
+			Accrual:    accrual,
+			UploadedAt: uploadedAt,
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
+func (s *Storage) AddOrder(
+	ctx context.Context,
+	order *model.Order,
+) error {
+	q := `
+	INSERT INTO orders (user_id, number, status, accrual)
+	VALUES (@userID, @orderNumber, @orderStatus, @accrual)
+	`
+
+	args := pgx.NamedArgs{
+		"userID":      order.UserID,
+		"orderNumber": order.Number,
+		"orderStatus": order.Status,
+		"accrual":     order.Accrual,
+	}
+	if _, err := s.DB.Exec(ctx, q, args); err != nil {
+		return fmt.Errorf("failed to create order: %w", err)
+	}
+
+	return nil
+}
+
+var _ model.BalanceRepository = (*Storage)(nil)
+
+func (s *Storage) GetTotalPoints(ctx context.Context, userID int) (int, error) {
+	q := `
+	SELECT COALESCE(SUM(accrual), 0) AS total_accrual
+	FROM orders
+	WHERE user_id = $1 AND status = 'PROCESSED';
+	`
+
+	row := s.DB.QueryRow(ctx, q, userID)
+
+	var balance int
+	if err := row.Scan(&balance); err != nil {
+		return 0, err
+	}
+
+	return balance, nil
+}
+func (s *Storage) GetWithdrawals(ctx context.Context, userID int) (int, error) {
+	q := `
+	SELECT COALESCE(SUM(sum), 0) as total_withdrawn
+	FROM withdrawals
+	WHERE user_id = $1;
+	`
+
+	row := s.DB.QueryRow(ctx, q, userID)
+
+	var withdrawn int
+	if err := row.Scan(&withdrawn); err != nil {
+		return 0, err
+	}
+
+	return withdrawn, nil
+}
+
+func (s *Storage) WithdrawPoints(
+	ctx context.Context,
+	userID int,
+	orderNum string,
+	sum int,
+) error {
+	q := `
+	INSERT INTO withdrawals (user_id, order_number, sum)
+	VALUES (@userID, @orderNum, @sum)
+	`
+
+	args := pgx.NamedArgs{
+		"userID":   userID,
+		"orderNum": orderNum,
+		"sum":      sum,
+	}
+	if _, err := s.DB.Exec(ctx, q, args); err != nil {
+		return fmt.Errorf("failed to create withdrawal: %w", err)
+	}
+
+	return nil
+}
+
+var _ model.WithdrawalsRepository = (*Storage)(nil)
+
+func (s *Storage) GetWithdrawalsByUserID(
+	ctx context.Context,
+	userID int,
+) ([]model.Withdrawal, error) {
+	q := `
+	SELECT id, order_number, sum, processed_at
+	FROM withdrawals
+	WHERE user_id = $1
+	ORDER BY id DESC
+	`
+
+	var (
+		orderID     int
+		orderNumber string
+		sum         int
+		processedAt time.Time
+	)
+	rows, err := s.DB.Query(ctx, q, userID)
+	if err != nil {
+		return nil, fmt.Errorf("withdrawals query error: %w", err)
+	}
+	defer rows.Close()
+
+	var withdrawals []model.Withdrawal
+	for rows.Next() {
+		if err := rows.Scan(
+			&orderID,
+			&orderNumber,
+			&sum,
+			&processedAt,
+		); err != nil {
+			return nil, fmt.Errorf("error reading values: %w", err)
+		}
+		withdrawal := model.Withdrawal{
+			ID:          orderID,
+			UserID:      userID,
+			OrderNum:    orderNumber,
+			Sum:         sum,
+			ProcessedAt: processedAt,
+		}
+		withdrawals = append(withdrawals, withdrawal)
+	}
+
+	return withdrawals, nil
 }
