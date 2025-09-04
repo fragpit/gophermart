@@ -23,14 +23,14 @@ func NewBalanceService(repo model.BalanceRepository) *BalanceService {
 func (b *BalanceService) GetTotalPoints(
 	ctx context.Context,
 	userID int,
-) (int, error) {
+) (model.Kopek, error) {
 	return b.repo.GetTotalPoints(ctx, userID)
 }
 
 func (b *BalanceService) GetWithdrawals(
 	ctx context.Context,
 	userID int,
-) (int, error) {
+) (model.Kopek, error) {
 	return b.repo.GetWithdrawals(ctx, userID)
 }
 
@@ -38,7 +38,7 @@ func (o *BalanceService) WithdrawPoints(
 	ctx context.Context,
 	userID int,
 	orderNum string,
-	sum int,
+	sum model.Kopek,
 ) error {
 	totalWithdrawals, err := o.GetWithdrawals(ctx, userID)
 	if err != nil {

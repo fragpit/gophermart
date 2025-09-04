@@ -18,9 +18,9 @@ type WithdrawalsService interface {
 }
 
 type WithdrawalsResponse struct {
-	OrderNumber  string `json:"order"`
-	SumWithdrawn int    `json:"sum"`
-	ProcessedAt  string `json:"processed_at"`
+	OrderNumber  string      `json:"order"`
+	SumWithdrawn model.Kopek `json:"sum"`
+	ProcessedAt  string      `json:"processed_at"`
 }
 
 func NewWithdrawalsHandler(svc WithdrawalsService) http.Handler {

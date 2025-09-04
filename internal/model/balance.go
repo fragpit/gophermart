@@ -10,12 +10,12 @@ var (
 )
 
 type BalanceRepository interface {
-	GetTotalPoints(ctx context.Context, userID int) (int, error)
-	GetWithdrawals(ctx context.Context, userID int) (int, error)
+	GetTotalPoints(ctx context.Context, userID int) (Kopek, error)
+	GetWithdrawals(ctx context.Context, userID int) (Kopek, error)
 	WithdrawPoints(
 		ctx context.Context,
 		userID int,
 		orderNum string,
-		sum int,
+		sum Kopek,
 	) error
 }

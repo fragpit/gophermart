@@ -135,7 +135,7 @@ func (s *Storage) GetOrdersByUserID(
 	userID int,
 ) ([]model.Order, error) {
 	q := `
-	SELECT id, number, status, accrual, uploaded_at
+	SELECT id, number, status, (accrual * 100)::bigint AS accrual_kopeks, uploaded_at
 	FROM orders
 	WHERE user_id = $1
 	ORDER BY id DESC
@@ -145,7 +145,7 @@ func (s *Storage) GetOrdersByUserID(
 		orderID     int
 		orderNumber string
 		status      model.OrderStatus
-		accrual     int
+		accrual     model.Kopek
 		uploadedAt  time.Time
 	)
 	rows, err := s.DB.Query(ctx, q, userID)
@@ -203,48 +203,55 @@ func (s *Storage) AddOrder(
 
 var _ model.BalanceRepository = (*Storage)(nil)
 
-func (s *Storage) GetTotalPoints(ctx context.Context, userID int) (int, error) {
+func (s *Storage) GetTotalPoints(
+	ctx context.Context,
+	userID int,
+) (model.Kopek, error) {
 	q := `
-	SELECT COALESCE(SUM(accrual), 0) AS total_accrual
+	SELECT COALESCE(SUM((accrual*100)::bigint), 0) AS total_accrual
 	FROM orders
 	WHERE user_id = $1 AND status = 'PROCESSED';
 	`
 
 	row := s.DB.QueryRow(ctx, q, userID)
 
-	var balance int
+	var balance model.Kopek
 	if err := row.Scan(&balance); err != nil {
 		return 0, err
 	}
 
 	return balance, nil
 }
-func (s *Storage) GetWithdrawals(ctx context.Context, userID int) (int, error) {
+
+func (s *Storage) GetWithdrawals(
+	ctx context.Context,
+	userID int,
+) (model.Kopek, error) {
 	q := `
-	SELECT COALESCE(SUM(sum), 0) as total_withdrawn
+	SELECT COALESCE(SUM((sum * 100)::bigint), 0) as total_withdrawn_kopeks
 	FROM withdrawals
 	WHERE user_id = $1;
 	`
 
 	row := s.DB.QueryRow(ctx, q, userID)
 
-	var withdrawn int
-	if err := row.Scan(&withdrawn); err != nil {
-		return 0, err
+	var withdrawals model.Kopek
+	if err := row.Scan(&withdrawals); err != nil {
+		return 0, fmt.Errorf("failed to get withdrawals: %w", err)
 	}
 
-	return withdrawn, nil
+	return withdrawals, nil
 }
 
 func (s *Storage) WithdrawPoints(
 	ctx context.Context,
 	userID int,
 	orderNum string,
-	sum int,
+	sum model.Kopek,
 ) error {
 	q := `
 	INSERT INTO withdrawals (user_id, order_number, sum)
-	VALUES (@userID, @orderNum, @sum)
+	VALUES (@userID, @orderNum, (@sum::numeric / 100.0 ))
 	`
 
 	args := pgx.NamedArgs{
@@ -266,7 +273,7 @@ func (s *Storage) GetWithdrawalsByUserID(
 	userID int,
 ) ([]model.Withdrawal, error) {
 	q := `
-	SELECT id, order_number, sum, processed_at
+	SELECT id, order_number, (sum * 100)::bigint AS sum_kopeks, processed_at
 	FROM withdrawals
 	WHERE user_id = $1
 	ORDER BY id DESC
@@ -275,7 +282,7 @@ func (s *Storage) GetWithdrawalsByUserID(
 	var (
 		orderID     int
 		orderNumber string
-		sum         int
+		sum         model.Kopek
 		processedAt time.Time
 	)
 	rows, err := s.DB.Query(ctx, q, userID)

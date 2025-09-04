@@ -25,7 +25,7 @@ type OrdersService interface {
 type ordersGetResponse struct {
 	Number     string            `json:"number"`
 	Status     model.OrderStatus `json:"status"`
-	Accrual    int               `json:"accrual"`
+	Accrual    model.Kopek       `json:"accrual"`
 	UploadedAt string            `json:"uploaded_at"`
 }
 

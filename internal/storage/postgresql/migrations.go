@@ -37,7 +37,7 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 					user_id INTEGER NOT NULL REFERENCES users(id),
 					number VARCHAR(255) UNIQUE NOT NULL,
 					status VARCHAR(20) NOT NULL DEFAULT 'NEW',
-					accrual INTEGER NOT NULL DEFAULT 0,
+					accrual NUMERIC(10,2) NOT NULL DEFAULT 0,
 					uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);
 
@@ -45,7 +45,7 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 					id SERIAL PRIMARY KEY,
 					user_id INTEGER NOT NULL REFERENCES users(id),
 					order_number VARCHAR(255) NOT NULL,
-					sum INTEGER NOT NULL,
+					sum NUMERIC(10,2) NOT NULL,
 					processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);
 

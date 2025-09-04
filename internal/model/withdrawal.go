@@ -13,6 +13,6 @@ type Withdrawal struct {
 	ID          int
 	UserID      int
 	OrderNum    string
-	Sum         int
+	Sum         Kopek
 	ProcessedAt time.Time
 }

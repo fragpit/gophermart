@@ -12,19 +12,19 @@ import (
 )
 
 type BalanceService interface {
-	GetTotalPoints(ctx context.Context, userID int) (int, error)
-	GetWithdrawals(ctx context.Context, userID int) (int, error)
+	GetTotalPoints(ctx context.Context, userID int) (model.Kopek, error)
+	GetWithdrawals(ctx context.Context, userID int) (model.Kopek, error)
 	WithdrawPoints(
 		ctx context.Context,
 		userID int,
 		orderNum string,
-		sum int,
+		sum model.Kopek,
 	) error
 }
 
 type balanceResponse struct {
-	CurrentBalance int `json:"current"`
-	TotalWithdrawn int `json:"withdrawn"`
+	CurrentBalance model.Kopek `json:"current"`
+	TotalWithdrawn model.Kopek `json:"withdrawn"`
 }
 
 func NewBalanceHandler(svc BalanceService) http.Handler {
@@ -98,8 +98,8 @@ func NewBalanceHandler(svc BalanceService) http.Handler {
 }
 
 type balanceWithdrawRequest struct {
-	OrderNum string `json:"order"`
-	Sum      int    `json:"sum"`
+	OrderNum string      `json:"order"`
+	Sum      model.Kopek `json:"sum"`
 }
 
 func NewBalanceWithdrawHandler(svc BalanceService) http.Handler {

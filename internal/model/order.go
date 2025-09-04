@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/fragpit/gophermart/internal/utils/luhn"
@@ -17,16 +18,6 @@ var (
 	ErrBadOrderNumber = errors.New("bad order number format")
 )
 
-type OrderStatus int
-
-const (
-	StatusNew OrderStatus = iota
-	StatusRegistered
-	StatusProcessing
-	StatusProcessed
-	StatusInvalid
-)
-
 type OrdersRepository interface {
 	GetOrdersByUserID(ctx context.Context, userID int) ([]Order, error)
 	AddOrder(ctx context.Context, order *Order) error
@@ -37,7 +28,7 @@ type Order struct {
 	UserID     int
 	Number     string
 	Status     OrderStatus
-	Accrual    int
+	Accrual    Kopek
 	UploadedAt time.Time
 }
 
@@ -52,6 +43,16 @@ func NewOrder(userID int, num string) *Order {
 func ValidateNumber(number string) bool {
 	return luhn.ValidateNumber(number)
 }
+
+type OrderStatus int
+
+const (
+	StatusNew OrderStatus = iota
+	StatusRegistered
+	StatusProcessing
+	StatusProcessed
+	StatusInvalid
+)
 
 func (s OrderStatus) String() string {
 	switch s {
@@ -106,3 +107,29 @@ func (s *OrderStatus) fromString(v string) error {
 	}
 	return nil
 }
+
+type Kopek int
+
+func (k Kopek) MarshalJSON() ([]byte, error) {
+	v := int(k)
+	if v < 0 {
+		os.Exit(1)
+	}
+
+	intPart := v / 100
+	frac := v % 100
+
+	// удовлетворим всем кейсам идиотской спецификации docs/SPECIFICATION.md
+	// т.к. требований нет, просто визуальное соответствие.
+	switch {
+	case frac == 0:
+		return []byte(fmt.Sprintf("%d", intPart)), nil
+	case frac%10 == 0:
+		return []byte(fmt.Sprintf("%d.%d", intPart, frac/10)), nil
+	default:
+		return []byte(fmt.Sprintf("%d.%02d", intPart, frac)), nil
+	}
+}
+
+func (k Kopek) KopekToInt() int    { return 0 }
+func (k Kopek) IntToKopek(sum int) {}
