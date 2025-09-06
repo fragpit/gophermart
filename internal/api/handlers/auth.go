@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -105,6 +106,7 @@ func NewAuthRegisterHandler(svc AuthService) http.Handler {
 			return
 		}
 
+		w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(b); err != nil {
 			slog.Warn("failed to write response", slog.Any("error", err))
@@ -187,6 +189,7 @@ func NewAuthLoginHandler(svc AuthService) http.Handler {
 			return
 		}
 
+		w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(b); err != nil {
 			slog.Warn("failed to write response", slog.Any("error", err))

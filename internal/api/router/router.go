@@ -30,6 +30,7 @@ func NewRouter(deps StorageDeps) *Router {
 	mux := http.NewServeMux()
 
 	authMW := middleware.RequireJWT(deps.JWTSecret)
+	logMW := middleware.Log()
 
 	mux.Handle(
 		"GET /health",
@@ -69,7 +70,7 @@ func NewRouter(deps StorageDeps) *Router {
 	)
 
 	return &Router{
-		router: mux,
+		router: logMW(mux),
 	}
 }
 

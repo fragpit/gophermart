@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/fragpit/gophermart/internal/utils/luhn"
@@ -112,14 +111,11 @@ type Kopek int
 
 func (k Kopek) MarshalJSON() ([]byte, error) {
 	v := int(k)
-	if v < 0 {
-		os.Exit(1)
-	}
 
 	intPart := v / 100
 	frac := v % 100
 
-	// удовлетворим всем кейсам идиотской спецификации docs/SPECIFICATION.md
+	// удовлетворим всем требованиям спецификации docs/SPECIFICATION.md
 	// т.к. требований нет, просто визуальное соответствие.
 	switch {
 	case frac == 0:
