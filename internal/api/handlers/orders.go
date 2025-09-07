@@ -142,7 +142,7 @@ func NewOrdersPostHandler(svc OrdersService) http.Handler {
 		}
 
 		if err := svc.AddOrder(ctx, userID, orderNumber); err != nil {
-			if errors.Is(err, model.ErrOrderAlreadyAdded) {
+			if errors.Is(err, model.ErrOrderAlreadyExist) {
 				slog.Info("order already added")
 				http.Error(w, "order already added", http.StatusOK)
 			} else if errors.Is(err, model.ErrOrderAlreadyAddedByOtherUser) {

@@ -195,6 +195,27 @@ func (s *Storage) AddOrder(
 		"accrual":     order.Accrual,
 	}
 	if _, err := s.DB.Exec(ctx, q, args); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+			var existingUserID int
+			row := s.DB.QueryRow(
+				ctx,
+				`SELECT user_id FROM orders WHERE number = $1`,
+				order.Number,
+			)
+			if scanErr := row.Scan(&existingUserID); scanErr != nil {
+				return fmt.Errorf(
+					"%w: order exists; failed to get owner: %v",
+					model.ErrOrderAlreadyExist,
+					scanErr,
+				)
+			}
+			if existingUserID != order.UserID {
+				return model.ErrOrderAlreadyAddedByOtherUser
+			}
+			return model.ErrOrderAlreadyExist
+		}
+
 		return fmt.Errorf("failed to create order: %w", err)
 	}
 

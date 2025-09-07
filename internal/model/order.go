@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrOrderAlreadyAdded            = errors.New("order already added")
+	ErrOrderAlreadyExist            = errors.New("order already exist")
 	ErrOrderAlreadyAddedByOtherUser = errors.New(
 		"order already added by other user",
 	)
