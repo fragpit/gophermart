@@ -12,8 +12,8 @@ import (
 )
 
 type BalanceService interface {
-	GetTotalPoints(ctx context.Context, userID int) (model.Kopek, error)
-	GetWithdrawals(ctx context.Context, userID int) (model.Kopek, error)
+	GetUserBalance(ctx context.Context, userID int) (model.Kopek, error)
+	GetWithdrawalsSum(ctx context.Context, userID int) (model.Kopek, error)
 	WithdrawPoints(
 		ctx context.Context,
 		userID int,
@@ -45,7 +45,7 @@ func NewBalanceHandler(svc BalanceService) http.Handler {
 			return
 		}
 
-		totalPoints, err := svc.GetTotalPoints(ctx, userID)
+		balance, err := svc.GetUserBalance(ctx, userID)
 		if err != nil {
 			slog.Error("balance request error", slog.Any("error", err))
 			http.Error(
@@ -56,7 +56,7 @@ func NewBalanceHandler(svc BalanceService) http.Handler {
 			return
 		}
 
-		withdrawals, err := svc.GetWithdrawals(ctx, userID)
+		withdrawals, err := svc.GetWithdrawalsSum(ctx, userID)
 		if err != nil {
 			slog.Error("balance request error", slog.Any("error", err))
 			http.Error(
@@ -65,11 +65,6 @@ func NewBalanceHandler(svc BalanceService) http.Handler {
 				http.StatusInternalServerError,
 			)
 			return
-		}
-
-		balance := totalPoints - withdrawals
-		if balance < 0 {
-			balance = 0
 		}
 
 		resp := &balanceResponse{

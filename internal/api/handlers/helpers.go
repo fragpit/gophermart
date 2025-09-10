@@ -7,7 +7,7 @@ import (
 )
 
 func UserIDFromContext(ctx context.Context) (int, bool) {
-	v := ctx.Value(middleware.СtxUserIDKey)
+	v := ctx.Value(middleware.CtxUserIDKey)
 	if v == nil {
 		return 0, false
 	}

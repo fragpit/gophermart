@@ -2,7 +2,6 @@ package balance
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/fragpit/gophermart/internal/api/handlers"
 	"github.com/fragpit/gophermart/internal/model"
@@ -20,18 +19,18 @@ func NewBalanceService(repo model.BalanceRepository) *BalanceService {
 	}
 }
 
-func (b *BalanceService) GetTotalPoints(
+func (b *BalanceService) GetUserBalance(
 	ctx context.Context,
 	userID int,
 ) (model.Kopek, error) {
-	return b.repo.GetTotalPoints(ctx, userID)
+	return b.repo.GetUserBalance(ctx, userID)
 }
 
-func (b *BalanceService) GetWithdrawals(
+func (b *BalanceService) GetWithdrawalsSum(
 	ctx context.Context,
 	userID int,
 ) (model.Kopek, error) {
-	return b.repo.GetWithdrawals(ctx, userID)
+	return b.repo.GetWithdrawalsSum(ctx, userID)
 }
 
 func (b *BalanceService) WithdrawPoints(
@@ -40,20 +39,5 @@ func (b *BalanceService) WithdrawPoints(
 	orderNum string,
 	sum model.Kopek,
 ) error {
-	totalWithdrawals, err := b.GetWithdrawals(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("failed to get withdrawals: %w", err)
-	}
-
-	totalPoints, err := b.GetTotalPoints(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("failed to get total points: %w", err)
-	}
-
-	balance := totalPoints - totalWithdrawals
-	if balance < sum {
-		return model.ErrInsufficientPoints
-	}
-
 	return b.repo.WithdrawPoints(ctx, userID, orderNum, sum)
 }

@@ -84,9 +84,9 @@ func (s *Storage) Create(
 	user *model.User,
 ) (*model.User, error) {
 	q := `
-	INSERT INTO users (login, password_hash)
-	VALUES (@login, @password_hash)
-	RETURNING id;
+		INSERT INTO users (login, password_hash)
+		VALUES (@login, @password_hash)
+		RETURNING id;
 	`
 
 	args := pgx.NamedArgs{
@@ -108,7 +108,11 @@ func (s *Storage) GetByLogin(
 	ctx context.Context,
 	login string,
 ) (*model.User, error) {
-	q := `SELECT id, login, password_hash FROM users WHERE login = $1`
+	q := `
+		SELECT id, login, password_hash
+		FROM users
+		WHERE login = $1
+	`
 
 	var (
 		userID    int
@@ -136,10 +140,11 @@ func (s *Storage) GetOrdersByUserID(
 	userID int,
 ) ([]model.Order, error) {
 	q := `
-	SELECT id, number, status, (accrual * 100)::bigint AS accrual_kopeks, uploaded_at
-	FROM orders
-	WHERE user_id = $1
-	ORDER BY id DESC
+		SELECT id, number, status, (accrual * 100)::bigint
+			AS accrual_kopeks, uploaded_at
+		FROM orders
+		WHERE user_id = $1
+		ORDER BY id DESC
 	`
 
 	var (
@@ -185,8 +190,8 @@ func (s *Storage) AddOrder(
 	order *model.Order,
 ) error {
 	q := `
-	INSERT INTO orders (user_id, number, status, accrual)
-	VALUES (@userID, @orderNumber, @orderStatus, @accrual)
+		INSERT INTO orders (user_id, number, status, accrual)
+		VALUES (@userID, @orderNumber, @orderStatus, @accrual)
 	`
 
 	args := pgx.NamedArgs{
@@ -225,34 +230,42 @@ func (s *Storage) AddOrder(
 
 var _ model.BalanceRepository = (*Storage)(nil)
 
-func (s *Storage) GetTotalPoints(
+func (s *Storage) GetUserBalance(
 	ctx context.Context,
 	userID int,
 ) (model.Kopek, error) {
 	q := `
-	SELECT COALESCE(SUM((accrual*100)::bigint), 0) AS total_accrual
-	FROM orders
-	WHERE user_id = $1 AND status = 'PROCESSED';
+		SELECT
+		COALESCE((
+			SELECT SUM((o.accrual * 100)::bigint)
+			FROM orders o
+			WHERE o.user_id = $1 AND o.status = 'PROCESSED'
+		), 0)
+		-
+		COALESCE((
+			SELECT SUM((w.sum * 100)::bigint)
+			FROM withdrawals w
+			WHERE w.user_id = $1
+		), 0) AS balance_kopeks
 	`
-
 	row := s.DB.QueryRow(ctx, q, userID)
 
 	var balance model.Kopek
 	if err := row.Scan(&balance); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get balance: %w", err)
 	}
 
 	return balance, nil
 }
 
-func (s *Storage) GetWithdrawals(
+func (s *Storage) GetWithdrawalsSum(
 	ctx context.Context,
 	userID int,
 ) (model.Kopek, error) {
 	q := `
-	SELECT COALESCE(SUM((sum * 100)::bigint), 0) as total_withdrawn_kopeks
-	FROM withdrawals
-	WHERE user_id = $1;
+		SELECT COALESCE(SUM((sum * 100)::bigint), 0) as total_withdrawn_kopeks
+		FROM withdrawals
+		WHERE user_id = $1;
 	`
 
 	row := s.DB.QueryRow(ctx, q, userID)
@@ -271,20 +284,78 @@ func (s *Storage) WithdrawPoints(
 	orderNum string,
 	sum model.Kopek,
 ) error {
-	q := `
-	INSERT INTO withdrawals (user_id, order_number, sum)
-	VALUES (@userID, @orderNum, (@sum::numeric / 100.0 ))
-	`
+	txRetrier := retry.New(func(err error) bool {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "40001", "40P01":
+				return true
+			}
+		}
+		return false
+	})
 
-	args := pgx.NamedArgs{
-		"userID":   userID,
-		"orderNum": orderNum,
-		"sum":      sum,
-	}
-	if _, err := s.DB.Exec(ctx, q, args); err != nil {
-		return fmt.Errorf("failed to create withdrawal: %w", err)
+	op := func(ctx context.Context) error {
+		tx, err := s.DB.BeginTx(ctx, pgx.TxOptions{
+			IsoLevel: pgx.Serializable,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to start tx: %w", err)
+		}
+		defer func() { _ = tx.Rollback(ctx) }()
+
+		q := `
+			WITH bal AS (
+			SELECT
+				COALESCE((
+				SELECT SUM((o.accrual * 100)::bigint)
+				FROM orders o
+				WHERE o.user_id = $1 AND o.status = 'PROCESSED'
+				), 0)
+				-
+				COALESCE((
+				SELECT SUM((w.sum * 100)::bigint)
+				FROM withdrawals w
+				WHERE w.user_id = $1
+				), 0) AS balance
+			),
+			ins AS (
+			INSERT INTO withdrawals (user_id, order_number, sum)
+			SELECT
+				$1,
+				$2,
+				($3::numeric / 100.0)
+			FROM bal
+			WHERE bal.balance >= $3
+			RETURNING id
+			)
+			SELECT EXISTS(SELECT 1 FROM ins) AS ok;
+		`
+
+		var ok bool
+		if err := tx.QueryRow(
+			ctx,
+			q,
+			userID,
+			orderNum,
+			sum,
+		).Scan(&ok); err != nil {
+			return fmt.Errorf("withdraw exec: %w", err)
+		}
+
+		if !ok {
+			return model.ErrInsufficientPoints
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("failed to commit tx: %w", err)
+		}
+		return nil
 	}
 
+	if err := txRetrier.Do(ctx, op); err != nil {
+		return fmt.Errorf("failed to retry: %w", err)
+	}
 	return nil
 }
 
@@ -295,10 +366,10 @@ func (s *Storage) GetWithdrawalsByUserID(
 	userID int,
 ) ([]model.Withdrawal, error) {
 	q := `
-	SELECT id, order_number, (sum * 100)::bigint AS sum_kopeks, processed_at
-	FROM withdrawals
-	WHERE user_id = $1
-	ORDER BY id DESC
+		SELECT id, order_number, (sum * 100)::bigint AS sum_kopeks, processed_at
+		FROM withdrawals
+		WHERE user_id = $1
+		ORDER BY id DESC
 	`
 
 	var (
