@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fragpit/gophermart/internal/utils/luhn"
@@ -47,7 +49,6 @@ type OrderStatus int
 
 const (
 	StatusNew OrderStatus = iota
-	StatusRegistered
 	StatusProcessing
 	StatusProcessed
 	StatusInvalid
@@ -57,8 +58,6 @@ func (s OrderStatus) String() string {
 	switch s {
 	case StatusNew:
 		return "NEW"
-	case StatusRegistered:
-		return "REGISTERED"
 	case StatusProcessing:
 		return "PROCESSING"
 	case StatusProcessed:
@@ -93,8 +92,6 @@ func (s *OrderStatus) fromString(v string) error {
 	switch v {
 	case "NEW":
 		*s = StatusNew
-	case "REGISTERED":
-		*s = StatusRegistered
 	case "PROCESSING":
 		*s = StatusProcessing
 	case "PROCESSED":
@@ -125,6 +122,47 @@ func (k Kopek) MarshalJSON() ([]byte, error) {
 	default:
 		return []byte(fmt.Sprintf("%d.%02d", intPart, frac)), nil
 	}
+}
+
+func (k *Kopek) UnmarshalJSON(data []byte) error {
+	s := strings.TrimSpace(string(data))
+	if s == "" {
+		*k = 0
+		return nil
+	}
+
+	var result int
+	if strings.Contains(s, ".") {
+		parts := strings.Split(s, ".")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid accrual value %s", s)
+		}
+		intPart, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return fmt.Errorf("invalid accrual value %s: %w", s, err)
+		}
+		fracPart := parts[1]
+		if len(fracPart) == 1 {
+			fracPart += "0"
+		}
+		if len(fracPart) != 2 {
+			return fmt.Errorf("invalid accrual value %s", s)
+		}
+		frac, err := strconv.Atoi(fracPart)
+		if err != nil {
+			return fmt.Errorf("invalid accrual value %s: %w", s, err)
+		}
+		result = intPart*100 + frac
+	} else {
+		intPart, err := strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("invalid accrual value %s: %w", s, err)
+		}
+		result = intPart * 100
+	}
+
+	*k = Kopek(result)
+	return nil
 }
 
 func (k Kopek) KopekToInt() int    { return 0 }

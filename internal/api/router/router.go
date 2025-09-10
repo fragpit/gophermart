@@ -83,7 +83,7 @@ func (r *Router) Run(ctx context.Context, addr string) error {
 	errChan := make(chan error, 1)
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("failed to start server", slog.Any("error", err))
+			slog.Error("failed to start api", slog.Any("error", err))
 			errChan <- err
 			return
 		}
@@ -100,13 +100,11 @@ func (r *Router) Run(ctx context.Context, addr string) error {
 
 		if err := srv.Shutdown(ctx); err != nil {
 			slog.Error(
-				"failed to shutdown server gracefully",
+				"failed to shutdown api gracefully",
 				slog.Any("error", err),
 			)
 			return err
 		}
-
-		slog.Info("api shut down gracefully")
 	}
 
 	return nil

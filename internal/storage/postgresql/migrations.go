@@ -38,7 +38,8 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 					number VARCHAR(255) UNIQUE NOT NULL,
 					status VARCHAR(20) NOT NULL DEFAULT 'NEW',
 					accrual NUMERIC(10,2) NOT NULL DEFAULT 0,
-					uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+					uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+					last_polled_at TIMESTAMP WITH TIME ZONE
 			);
 
 			CREATE TABLE IF NOT EXISTS withdrawals (
@@ -55,10 +56,14 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 			CREATE INDEX IF NOT EXISTS idx_withdrawals_user_id
 			ON withdrawals (user_id);
 
+			CREATE INDEX IF NOT EXISTS idx_orders_status_last_polled
+			ON orders (status, last_polled_at);
+
 			`,
 			DownSQL: `
 			DROP INDEX IF EXISTS idx_orders_user_id_status;
             DROP INDEX IF EXISTS idx_withdrawals_user_id;
+            DROP INDEX IF EXISTS idx_orders_status_last_polled;
 
 			DROP TABLE IF EXISTS users;
 			DROP TABLE IF EXISTS orders;

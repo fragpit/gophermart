@@ -7,10 +7,14 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/fragpit/gophermart/internal/api/router"
 	"github.com/fragpit/gophermart/internal/config"
+	collector "github.com/fragpit/gophermart/internal/service/accrual-collector"
 	"github.com/fragpit/gophermart/internal/service/auth"
 	"github.com/fragpit/gophermart/internal/service/balance"
 	"github.com/fragpit/gophermart/internal/service/healthcheck"
@@ -56,7 +60,7 @@ func main() {
 		fmt.Println(cfg.String())
 	}
 
-	logger.Info("starting server", slog.String("address", cfg.RunAddress))
+	slog.Info("starting app")
 
 	pgStorage, err := postgresql.NewStorage(ctx, cfg.DatabaseURI)
 	if err != nil {
@@ -79,11 +83,50 @@ func main() {
 		WithdrawalsService: withdrawalsSvc,
 	}
 	router := router.NewRouter(routerDeps)
-	if err := router.Run(ctx, cfg.RunAddress); err != nil {
-		logger.Error("failed to start api", slog.Any("error", err))
-		logger.Info("shutting down app")
-		cancel()
+
+	wg := &sync.WaitGroup{}
+	var exitCode int32
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		slog.Info("starting api", slog.String("address", cfg.RunAddress))
+		if err := router.Run(ctx, cfg.RunAddress); err != nil {
+			slog.Error("api failed", slog.Any("error", err))
+			atomic.StoreInt32(&exitCode, 1)
+			cancel()
+			return
+		}
+		slog.Info("api shut down gracefully")
+	}()
+
+	pollInterval := 5 * time.Second
+	collector := collector.NewCollector(
+		cfg.AccrualSystemAddress,
+		pollInterval,
+		pgStorage,
+	)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		slog.Info("starting collector", slog.Duration("interval", pollInterval))
+		if err := collector.Run(ctx); err != nil {
+			slog.Error("collector failed", slog.Any("error", err))
+			atomic.StoreInt32(&exitCode, 1)
+			cancel()
+			return
+		}
+		slog.Info("collector shutdown gracefully")
+	}()
+
+	wg.Wait()
+
+	ec := int(atomic.LoadInt32(&exitCode))
+	if ec != 0 {
+		slog.Error("app failed", slog.Int("exit_code", ec))
+		os.Exit(ec)
 	}
 
-	logger.Info("server shut down")
+	slog.Info("app shut down successfully")
 }
