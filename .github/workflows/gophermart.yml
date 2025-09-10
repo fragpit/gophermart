@@ -51,6 +51,8 @@ jobs:
           (cd cmd/accrual && chmod +x accrual_linux_amd64)
 
       - name: Test
+        env:
+          JWT_SECRET: "dmVyeV9tdWNoX3NlY3JldF90b2tlbg=="
         run: |
           gophermarttest \
             -test.v -test.run=^TestGophermart$ \
