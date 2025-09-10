@@ -211,8 +211,6 @@ func (c *Collector) handleOrder(ctx context.Context, order *model.Order) error {
 		}
 	}
 
-	fmt.Println(respBody)
-
 	switch respBody.Status {
 	case model.StatusProcessed.String():
 		if err := c.repo.SetAccrual(ctx, order.ID, respBody.Accrual); err != nil {
