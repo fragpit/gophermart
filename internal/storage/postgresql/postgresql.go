@@ -140,8 +140,7 @@ func (s *Storage) GetOrdersByUserID(
 	userID int,
 ) ([]model.Order, error) {
 	q := `
-		SELECT id, number, status, (accrual * 100)::bigint
-			AS accrual_kopeks, uploaded_at
+		SELECT id, number, status, accrual, uploaded_at
 		FROM orders
 		WHERE user_id = $1
 		ORDER BY id DESC
@@ -235,18 +234,18 @@ func (s *Storage) GetUserBalance(
 	userID int,
 ) (model.Kopek, error) {
 	q := `
-		SELECT
-		COALESCE((
-			SELECT SUM((o.accrual * 100)::bigint)
-			FROM orders o
-			WHERE o.user_id = $1 AND o.status = 'PROCESSED'
-		), 0)
-		-
-		COALESCE((
-			SELECT SUM((w.sum * 100)::bigint)
-			FROM withdrawals w
-			WHERE w.user_id = $1
-		), 0) AS balance_kopeks
+		SELECT (
+			COALESCE((
+				SELECT SUM(o.accrual) FROM orders o
+				WHERE o.user_id = $1 AND o.status = 'PROCESSED'
+			), 0)
+			-
+			COALESCE((
+				SELECT SUM(w.sum) FROM withdrawals w
+				WHERE w.user_id = $1
+			), 0)
+		)
+		::bigint AS balance_kopeks
 	`
 	row := s.DB.QueryRow(ctx, q, userID)
 
@@ -263,7 +262,7 @@ func (s *Storage) GetWithdrawalsSum(
 	userID int,
 ) (model.Kopek, error) {
 	q := `
-		SELECT COALESCE(SUM((sum * 100)::bigint), 0) as total_withdrawn_kopeks
+		SELECT COALESCE(SUM(sum), 0)::bigint as total_withdrawn_kopeks
 		FROM withdrawals
 		WHERE user_id = $1;
 	`
@@ -306,27 +305,27 @@ func (s *Storage) WithdrawPoints(
 
 		q := `
 			WITH bal AS (
-			SELECT
+			SELECT (
 				COALESCE((
-				SELECT SUM((o.accrual * 100)::bigint)
-				FROM orders o
-				WHERE o.user_id = $1 AND o.status = 'PROCESSED'
+					SELECT SUM(o.accrual) FROM orders o
+					WHERE o.user_id = $1 AND o.status = 'PROCESSED'
 				), 0)
 				-
 				COALESCE((
-				SELECT SUM((w.sum * 100)::bigint)
-				FROM withdrawals w
-				WHERE w.user_id = $1
-				), 0) AS balance
+					SELECT SUM(w.sum) FROM withdrawals w
+					WHERE w.user_id = $1
+				), 0)
+			)
+			::bigint AS balance
 			),
 			ins AS (
 			INSERT INTO withdrawals (user_id, order_number, sum)
 			SELECT
 				$1,
 				$2,
-				($3::numeric / 100.0)
+				$3::bigint
 			FROM bal
-			WHERE bal.balance >= $3
+			WHERE bal.balance >= $3::bigint
 			RETURNING id
 			)
 			SELECT EXISTS(SELECT 1 FROM ins) AS ok;
@@ -366,7 +365,7 @@ func (s *Storage) GetWithdrawalsByUserID(
 	userID int,
 ) ([]model.Withdrawal, error) {
 	q := `
-		SELECT id, order_number, (sum * 100)::bigint AS sum_kopeks, processed_at
+		SELECT id, order_number, sum, processed_at
 		FROM withdrawals
 		WHERE user_id = $1
 		ORDER BY id DESC
@@ -416,7 +415,7 @@ func (s *Storage) SetAccrual(
 ) error {
 	q := `
 		UPDATE orders
-		SET accrual = ($1::numeric / 100.0),
+		SET accrual = $1,
 			status = $2
 		WHERE id = $3
 	`
@@ -496,7 +495,7 @@ func (s *Storage) GetOrdersBatch(
 			o.user_id,
 			o.number,
 			o.status,
-			(o.accrual * 100)::bigint AS accrual_kopeks,
+			o.accrual,
 			o.uploaded_at
 	`
 
