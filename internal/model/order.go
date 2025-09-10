@@ -164,6 +164,3 @@ func (k *Kopek) UnmarshalJSON(data []byte) error {
 	*k = Kopek(result)
 	return nil
 }
-
-func (k Kopek) KopekToInt() int    { return 0 }
-func (k Kopek) IntToKopek(sum int) {}
