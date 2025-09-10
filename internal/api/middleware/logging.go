@@ -39,7 +39,7 @@ func Log() func(http.Handler) http.Handler {
 						bytes.NewReader(bodyBytes))
 					if err == nil {
 						decompressedBody, _ = io.ReadAll(gz)
-						gz.Close()
+						_ = gz.Close()
 					}
 				}
 			}
