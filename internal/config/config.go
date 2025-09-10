@@ -22,76 +22,73 @@ type Config struct {
 	JWTTTL               time.Duration
 }
 
+func getenvOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
 func NewConfig() (*Config, error) {
-	logLevel := flag.String("log-level", "info", "log level (default: info)")
-	runAddress := flag.String("a", ":8080", "listen address")
-	databaseURI := flag.String("d", "", "database connection string")
-	accrualSysAddress := flag.String("r", "", "accrual system address")
+	logLevel := flag.String(
+		"log-level",
+		getenvOr("LOG_LEVEL", "info"),
+		"log level (default: info)",
+	)
+	runAddress := flag.String(
+		"a",
+		getenvOr("RUN_ADDRESS", ":8080"),
+		"listen address",
+	)
+	databaseURI := flag.String(
+		"d",
+		getenvOr("DATABASE_URI", ""),
+		"database connection string",
+	)
+	accrualSysAddress := flag.String(
+		"r",
+		getenvOr("ACCRUAL_SYSTEM_ADDRESS", ""),
+		"accrual system address",
+	)
 	JWTSecret := flag.String(
 		"jwt-secret",
-		"",
+		getenvOr("JWT_SECRET", ""),
 		"jwt secret key for token encryption",
 	)
-	JWTTTL := flag.String("jwt-ttl", "24h", "jwt token ttl (default: 24h)")
+	JWTTTL := flag.String(
+		"jwt-ttl",
+		getenvOr("JWT_TTL", "24h"),
+		"jwt token ttl (default: 24h)",
+	)
 
 	flag.Parse()
 
-	finalLogLevel := *logLevel
-	if env := os.Getenv("LOG_LEVEL"); env != "" {
-		finalLogLevel = env
-	}
-
-	finalRunAddress := *runAddress
-	if env := os.Getenv("RUN_ADDRESS"); env != "" {
-		finalRunAddress = env
-	}
-
-	finalDatabaseURI := *databaseURI
-	if env := os.Getenv("DATABASE_URI"); env != "" {
-		finalDatabaseURI = env
-	}
-
-	finalAccrualSysAddress := *accrualSysAddress
-	if env := os.Getenv("ACCRUAL_SYSTEM_ADDRESS"); env != "" {
-		finalAccrualSysAddress = env
-	}
-
-	finalJWTSecret := *JWTSecret
-	if env := os.Getenv("JWT_SECRET"); env != "" {
-		finalJWTSecret = env
-	}
-
-	finalJWTTTL := *JWTTTL
-	if env := os.Getenv("JWT_TTL"); env != "" {
-		finalJWTTTL = env
-	}
-
-	if finalDatabaseURI == "" {
+	if *databaseURI == "" {
 		return nil, fmt.Errorf("database URI error %w", ErrParameterNotSet)
 	}
 
-	if finalAccrualSysAddress == "" {
+	if *accrualSysAddress == "" {
 		return nil, fmt.Errorf(
 			"accrual system address error %w",
 			ErrParameterNotSet,
 		)
 	}
 
-	if finalJWTSecret == "" {
+	if *JWTSecret == "" {
 		return nil, fmt.Errorf("no jwt token set %w", ErrParameterNotSet)
 	}
 
-	jwtTTLDuration, err := time.ParseDuration(finalJWTTTL)
+	jwtTTLDuration, err := time.ParseDuration(*JWTTTL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid jwt ttl %q: %w", finalJWTTTL, err)
+		return nil, fmt.Errorf("invalid jwt ttl %q: %w", *JWTTTL, err)
 	}
 
 	return &Config{
-		LogLevel:             finalLogLevel,
-		RunAddress:           finalRunAddress,
-		DatabaseURI:          finalDatabaseURI,
-		AccrualSystemAddress: finalAccrualSysAddress,
-		JWTSecret:            finalJWTSecret,
+		LogLevel:             *logLevel,
+		RunAddress:           *runAddress,
+		DatabaseURI:          *databaseURI,
+		AccrualSystemAddress: *accrualSysAddress,
+		JWTSecret:            *JWTSecret,
 		JWTTTL:               jwtTTLDuration,
 	}, nil
 }
