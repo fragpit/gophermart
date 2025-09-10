@@ -34,18 +34,18 @@ func (b *BalanceService) GetWithdrawals(
 	return b.repo.GetWithdrawals(ctx, userID)
 }
 
-func (o *BalanceService) WithdrawPoints(
+func (b *BalanceService) WithdrawPoints(
 	ctx context.Context,
 	userID int,
 	orderNum string,
 	sum model.Kopek,
 ) error {
-	totalWithdrawals, err := o.GetWithdrawals(ctx, userID)
+	totalWithdrawals, err := b.GetWithdrawals(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to get withdrawals: %w", err)
 	}
 
-	totalPoints, err := o.GetTotalPoints(ctx, userID)
+	totalPoints, err := b.GetTotalPoints(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to get total points: %w", err)
 	}
@@ -55,5 +55,5 @@ func (o *BalanceService) WithdrawPoints(
 		return model.ErrInsufficientPoints
 	}
 
-	return o.repo.WithdrawPoints(ctx, userID, orderNum, sum)
+	return b.repo.WithdrawPoints(ctx, userID, orderNum, sum)
 }
