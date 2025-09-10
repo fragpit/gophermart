@@ -11,7 +11,7 @@ import (
 
 type ctxKey string
 
-const СtxUserIDKey ctxKey = "user_id"
+const CtxUserIDKey ctxKey = "user_id"
 
 func RequireJWT(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -53,7 +53,7 @@ func RequireJWT(secret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), СtxUserIDKey, userID)
+			ctx := context.WithValue(r.Context(), CtxUserIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
