@@ -8,8 +8,10 @@ on:
       - main
       - master
 
-jobs:
+env:
+  LOG_LEVEL: "debug"
 
+jobs:
   build:
     runs-on: ubuntu-latest
     container: golang:1.24
