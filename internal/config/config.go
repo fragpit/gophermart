@@ -18,6 +18,7 @@ type Config struct {
 	RunAddress           string
 	DatabaseURI          string
 	AccrualSystemAddress string
+	AccrualPollInterval  time.Duration
 	JWTSecret            string
 	JWTTTL               time.Duration
 }
@@ -50,6 +51,11 @@ func NewConfig() (*Config, error) {
 		getenvOr("ACCRUAL_SYSTEM_ADDRESS", ""),
 		"accrual system address",
 	)
+	pollInterval := flag.String(
+		"poll-interval",
+		getenvOr("ACCRUAL_POLL_INTERVAL", "5s"),
+		"accrual poll interval (default: 5s)",
+	)
 	JWTSecret := flag.String(
 		"jwt-secret",
 		getenvOr("JWT_SECRET", ""),
@@ -74,6 +80,15 @@ func NewConfig() (*Config, error) {
 		)
 	}
 
+	pollIntervalDuration, err := time.ParseDuration(*pollInterval)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"invalid accrual poll interval %q: %w",
+			*pollInterval,
+			err,
+		)
+	}
+
 	if *JWTSecret == "" {
 		return nil, fmt.Errorf("no jwt token set %w", ErrParameterNotSet)
 	}
@@ -88,6 +103,7 @@ func NewConfig() (*Config, error) {
 		RunAddress:           *runAddress,
 		DatabaseURI:          *databaseURI,
 		AccrualSystemAddress: *accrualSysAddress,
+		AccrualPollInterval:  pollIntervalDuration,
 		JWTSecret:            *JWTSecret,
 		JWTTTL:               jwtTTLDuration,
 	}, nil

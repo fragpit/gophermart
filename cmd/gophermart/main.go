@@ -10,7 +10,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	"github.com/fragpit/gophermart/internal/api/router"
 	"github.com/fragpit/gophermart/internal/config"
@@ -100,17 +99,19 @@ func main() {
 		slog.Info("api shut down gracefully")
 	}()
 
-	pollInterval := 5 * time.Second
 	collector := collector.NewCollector(
 		cfg.AccrualSystemAddress,
-		pollInterval,
+		cfg.AccrualPollInterval,
 		pgStorage,
 	)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		slog.Info("starting collector", slog.Duration("interval", pollInterval))
+		slog.Info(
+			"starting collector",
+			slog.Duration("interval", cfg.AccrualPollInterval),
+		)
 		if err := collector.Run(ctx); err != nil {
 			slog.Error("collector failed", slog.Any("error", err))
 			atomic.StoreInt32(&exitCode, 1)
