@@ -9,7 +9,10 @@ func ValidateNumber(num string) bool {
 	parity := len(num) % 2
 
 	for i := 0; i < len(num); i++ {
-		digit, _ := strconv.Atoi(string(num[i]))
+		digit, err := strconv.Atoi(string(num[i]))
+		if err != nil {
+			return false
+		}
 		if i%2 == parity {
 			digit *= 2
 			if digit > 9 {
