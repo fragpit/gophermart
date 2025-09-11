@@ -148,6 +148,9 @@ func NewOrdersPostHandler(svc OrdersService) http.Handler {
 			} else if errors.Is(err, model.ErrOrderAlreadyAddedByOtherUser) {
 				slog.Info("order already added by other user")
 				http.Error(w, "order already added by other user", http.StatusConflict)
+			} else {
+				slog.Error("failed to add order", slog.Any("error", err))
+				http.Error(w, "internal server error", http.StatusInternalServerError)
 			}
 
 			return
