@@ -67,11 +67,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	healthSvc := healthcheck.NewHealthcheckService(pgStorage)
-	authSvc := auth.NewAuthService(pgStorage, cfg.JWTSecret, cfg.JWTTTL)
-	ordersSvc := orders.NewOrdersService(pgStorage)
-	balanceSvc := balance.NewBalanceService(pgStorage)
-	withdrawalsSvc := withdrawals.NewWithdrawalsService(pgStorage)
+	healthSvc := healthcheck.NewHealthcheckService(pgStorage.Health)
+	authSvc := auth.NewAuthService(pgStorage.Users, cfg.JWTSecret, cfg.JWTTTL)
+	ordersSvc := orders.NewOrdersService(pgStorage.Orders)
+	balanceSvc := balance.NewBalanceService(pgStorage.Balance)
+	withdrawalsSvc := withdrawals.NewWithdrawalsService(pgStorage.Withdrawals)
 
 	routerDeps := router.StorageDeps{
 		JWTSecret:          cfg.JWTSecret,
@@ -102,7 +102,7 @@ func main() {
 	collector := collector.NewCollector(
 		cfg.AccrualSystemAddress,
 		cfg.AccrualPollInterval,
-		pgStorage,
+		pgStorage.Collector,
 	)
 
 	wg.Add(1)

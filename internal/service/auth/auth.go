@@ -12,14 +12,14 @@ import (
 // var _ handlers.AuthService = (*AuthService)(nil)
 
 type AuthService struct {
-	repo model.UserRepository
+	repo model.UsersRepository
 
 	jwtSecret string
 	jwtTTL    time.Duration
 }
 
 func NewAuthService(
-	repo model.UserRepository,
+	repo model.UsersRepository,
 	jwtSecret string,
 	jwtTTL time.Duration,
 ) *AuthService {

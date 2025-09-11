@@ -18,7 +18,7 @@ const (
 	maxPasswordLength = 64
 )
 
-type UserRepository interface {
+type UsersRepository interface {
 	Create(ctx context.Context, u *User) (*User, error)
 	GetByLogin(ctx context.Context, login string) (*User, error)
 }
