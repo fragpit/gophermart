@@ -61,7 +61,7 @@
 Алгоритм работы сервиса:
 
 Константы:
-pollIntrval - 10s
+pollInterval - 10s
 maxRetries - 3
 availabilityMarker - time
 
