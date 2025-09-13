@@ -27,18 +27,50 @@ tasks:
       - task: test
       - task: lint
 
+  autotests:
+    env:
+      JWT_SECRET: "dmVyeV9tdWNoX3NlY3JldF90b2tlbg=="
+    vars:
+      TESTS_BIN_PATH: "{{ .ROOT_DIR }}/../go-autotests/bin/gophermarttest-darwin-arm64"
+      ACCRUAL_BIN_PATH: "{{ .ROOT_DIR }}/cmd/accrual/accrual_darwin_arm64"
+      GM_BIN_PATH: "{{ .ROOT_DIR }}/bin/gophermart"
+      DATABASE_URI: "postgresql://localhost:5432/gophermarttest?sslmode=disable"
+      ACCRUAL_PORT: "33333"
+    cmds:
+      - task: build
+      - defer: psql -d postgres -c "DROP DATABASE IF EXISTS gophermarttest"
+      - psql -d postgres -c "CREATE DATABASE gophermarttest"
+      - >
+        {{ .TESTS_BIN_PATH }} \
+          -test.v -test.run=^TestGophermart$ \
+          -gophermart-binary-path={{ .GM_BIN_PATH }} \
+          -gophermart-host=localhost \
+          -gophermart-port=8080 \
+          -gophermart-database-uri="{{ .DATABASE_URI }}" \
+          -accrual-binary-path={{ .ACCRUAL_BIN_PATH }} \
+          -accrual-host=localhost \
+          -accrual-port={{ .ACCRUAL_PORT }} \
+          -accrual-database-uri="{{ .DATABASE_URI }}"
+
   build:
     cmds:
       - mkdir -p {{ .BUILD_DIR }}
-      - go build -o {{ .BUILD_DIR }} {{ .ROOT_DIR }}/cmd/...
+      - go build -o {{ .BUILD_DIR }}/gophermart {{ .ROOT_DIR }}/cmd/...
 
   build-linux:
     desc: Build Linux amd64 gophermart binary into ./bin/gophermart
     cmds:
       - mkdir -p {{ .BUILD_DIR }}
-      - env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o {{ .ROOT_DIR }}/bin/gophermart {{ .ROOT_DIR }}/cmd/gophermart
+      - env GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o {{ .BUILD_DIR }}/gophermart {{ .ROOT_DIR }}/cmd/gophermart
 
   compose-up:
     cmds:
       - task: build-linux
-      - docker compose --file {{ .ROOT_DIR }}/docker-compose.yml up
+      - docker compose
+          --file {{ .ROOT_DIR }}/docker-compose.yml
+          up
+          --pull never
+
+  compose-clean:
+    cmds:
+      - docker compose down -v --remove-orphans
