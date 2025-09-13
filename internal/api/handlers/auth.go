@@ -11,6 +11,7 @@ import (
 	"github.com/fragpit/gophermart/internal/model"
 )
 
+//go:generate mockgen -destination ./mocks/auth_mock.go . AuthService
 type AuthService interface {
 	Register(ctx context.Context, login, password string) (string, error)
 	Login(ctx context.Context, login, password string) (string, error)

@@ -31,7 +31,11 @@ func ValidateParseJSONRequest(
 			"request with an empty or unsupported content type",
 			slog.String("content_type", r.Header.Get("Content-Type")),
 		)
-		http.Error(w, "wrong content type", http.StatusUnsupportedMediaType)
+		http.Error(
+			w,
+			http.StatusText(http.StatusUnsupportedMediaType),
+			http.StatusUnsupportedMediaType,
+		)
 		return
 	}
 

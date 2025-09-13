@@ -10,6 +10,7 @@ require (
 	github.com/jackc/tern/v2 v2.3.3
 	github.com/ory/dockertest/v3 v3.12.0
 	github.com/stretchr/testify v1.11.0
+	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.41.0
 	golang.org/x/sync v0.16.0
 )
