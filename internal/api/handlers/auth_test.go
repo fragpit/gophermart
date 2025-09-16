@@ -17,14 +17,14 @@ import (
 func TestNewAuthRegisterHandler(t *testing.T) {
 	slog.SetDefault(slog.New(slog.DiscardHandler))
 
-	type returnData struct {
+	type mockData struct {
 		token string
 		err   error
 	}
 
 	tests := []struct {
 		name           string
-		returnData     *returnData
+		mockData       *mockData
 		reqBody        *authRequest
 		contentType    string
 		wantCode       int
@@ -33,7 +33,7 @@ func TestNewAuthRegisterHandler(t *testing.T) {
 	}{
 		{
 			name: "success",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "tok123",
 				err:   nil,
 			},
@@ -47,7 +47,7 @@ func TestNewAuthRegisterHandler(t *testing.T) {
 		},
 		{
 			name: "user exists",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "",
 				err:   model.ErrUserExists,
 			},
@@ -60,7 +60,7 @@ func TestNewAuthRegisterHandler(t *testing.T) {
 		},
 		{
 			name: "password policy violated",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "",
 				err:   model.ErrPasswordPolicyViolated,
 			},
@@ -73,7 +73,7 @@ func TestNewAuthRegisterHandler(t *testing.T) {
 		},
 		{
 			name: "internal error",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "",
 				err:   fmt.Errorf("db down"),
 			},
@@ -86,7 +86,7 @@ func TestNewAuthRegisterHandler(t *testing.T) {
 		},
 		{
 			name: "wrong content type",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "",
 				err:   nil,
 			},
@@ -109,7 +109,7 @@ func TestNewAuthRegisterHandler(t *testing.T) {
 
 			m.EXPECT().
 				Register(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(tc.returnData.token, tc.returnData.err).AnyTimes()
+				Return(tc.mockData.token, tc.mockData.err).AnyTimes()
 			handler := NewAuthRegisterHandler(m)
 			rec := httptest.NewRecorder()
 
@@ -169,14 +169,14 @@ func TestNewAuthRegisterHandler(t *testing.T) {
 func TestNewAuthLoginHandler(t *testing.T) {
 	slog.SetDefault(slog.New(slog.DiscardHandler))
 
-	type returnData struct {
+	type mockData struct {
 		token string
 		err   error
 	}
 
 	tests := []struct {
 		name           string
-		returnData     *returnData
+		mockData       *mockData
 		reqBody        *authRequest
 		contentType    string
 		wantCode       int
@@ -185,7 +185,7 @@ func TestNewAuthLoginHandler(t *testing.T) {
 	}{
 		{
 			name: "success",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "tok123",
 				err:   nil,
 			},
@@ -199,7 +199,7 @@ func TestNewAuthLoginHandler(t *testing.T) {
 		},
 		{
 			name: "wrong username or password",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "",
 				err:   model.ErrInvalidCredentials,
 			},
@@ -212,7 +212,7 @@ func TestNewAuthLoginHandler(t *testing.T) {
 		},
 		{
 			name: "internal error",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "",
 				err:   fmt.Errorf("db down"),
 			},
@@ -225,7 +225,7 @@ func TestNewAuthLoginHandler(t *testing.T) {
 		},
 		{
 			name: "wrong content type",
-			returnData: &returnData{
+			mockData: &mockData{
 				token: "",
 				err:   nil,
 			},
@@ -248,7 +248,7 @@ func TestNewAuthLoginHandler(t *testing.T) {
 
 			m.EXPECT().
 				Login(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(tc.returnData.token, tc.returnData.err).AnyTimes()
+				Return(tc.mockData.token, tc.mockData.err).AnyTimes()
 			handler := NewAuthLoginHandler(m)
 			rec := httptest.NewRecorder()
 

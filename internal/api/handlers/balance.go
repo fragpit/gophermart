@@ -7,10 +7,12 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/fragpit/gophermart/internal/model"
 )
 
+//go:generate mockgen -destination ./mocks/balance_mock.go . BalanceService
 type BalanceService interface {
 	GetUserBalance(ctx context.Context, userID int) (model.Kopek, error)
 	GetWithdrawalsSum(ctx context.Context, userID int) (model.Kopek, error)
@@ -152,7 +154,17 @@ func NewBalanceWithdrawHandler(svc BalanceService) http.Handler {
 			return
 		}
 
-		if !model.ValidateNumber(withdrawRequest.OrderNum) {
+		orderNumber := strings.TrimSpace(string(withdrawRequest.OrderNum))
+		if orderNumber == "" {
+			slog.Error(
+				"failed to read body",
+				slog.String("error", "empty order number"),
+			)
+			http.Error(w, "empty order number", http.StatusBadRequest)
+			return
+		}
+
+		if !model.ValidateNumber(orderNumber) {
 			slog.Error(
 				"failed to validate order number",
 				slog.String("error", "failed to validate order number"),

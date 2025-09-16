@@ -13,6 +13,7 @@ import (
 	"github.com/fragpit/gophermart/internal/model"
 )
 
+//go:generate mockgen -destination ./mocks/orders_mock.go . OrdersService
 type OrdersService interface {
 	GetOrdersByUser(ctx context.Context, userID int) ([]model.Order, error)
 	AddOrder(

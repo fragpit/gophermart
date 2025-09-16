@@ -10,6 +10,7 @@ import (
 	"github.com/fragpit/gophermart/internal/model"
 )
 
+//go:generate mockgen -destination ./mocks/withdrawals_mock.go . WithdrawalsService
 type WithdrawalsService interface {
 	GetWithdrawalsByUser(
 		ctx context.Context,
