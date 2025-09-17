@@ -48,7 +48,9 @@ func NewRouter(deps StorageDeps) *Router {
 
 	mux.Handle(
 		"GET /api/user/orders",
-		authMW(handlers.NewOrdersGetHandler(deps.OrdersService)),
+		authMW(
+			middleware.Gzip(handlers.NewOrdersGetHandler(deps.OrdersService)),
+		),
 	)
 	mux.Handle(
 		"POST /api/user/orders",
@@ -66,7 +68,9 @@ func NewRouter(deps StorageDeps) *Router {
 
 	mux.Handle(
 		"GET /api/user/withdrawals",
-		authMW(handlers.NewWithdrawalsHandler(deps.WithdrawalsService)),
+		authMW(
+			middleware.Gzip(handlers.NewWithdrawalsHandler(deps.WithdrawalsService)),
+		),
 	)
 
 	return &Router{
