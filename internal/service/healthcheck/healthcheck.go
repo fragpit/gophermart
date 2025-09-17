@@ -4,6 +4,7 @@ import (
 	"context"
 )
 
+//go:generate mockgen -destination ./mocks/health_repo.go . HealthRepository
 type HealthRepository interface {
 	Ping(ctx context.Context) error
 }

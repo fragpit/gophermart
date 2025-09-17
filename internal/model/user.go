@@ -18,6 +18,7 @@ const (
 	maxPasswordLength = 64
 )
 
+//go:generate mockgen -destination ../service/auth/mocks/users_repo.go . UsersRepository
 type UsersRepository interface {
 	Create(ctx context.Context, u *User) (*User, error)
 	GetByLogin(ctx context.Context, login string) (*User, error)
