@@ -16,3 +16,7 @@ type Withdrawal struct {
 	Sum         Kopek
 	ProcessedAt time.Time
 }
+
+func ValidateSum(sum Kopek) bool {
+	return sum > 0
+}

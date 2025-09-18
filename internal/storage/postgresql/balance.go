@@ -93,30 +93,38 @@ func (r *BalanceRepo) WithdrawPoints(
 
 		q := `
 			WITH bal AS (
-			SELECT (
-				COALESCE((
-					SELECT SUM(o.accrual) FROM orders o
-					WHERE o.user_id = $1 AND o.status = 'PROCESSED'
-				), 0)
-				-
-				COALESCE((
-					SELECT SUM(w.sum) FROM withdrawals w
-					WHERE w.user_id = $1
-				), 0)
-			)
-			::bigint AS balance
+				SELECT (
+					COALESCE(
+						(
+							SELECT SUM(o.accrual)
+							FROM orders o
+							WHERE o.user_id = $1
+							AND o.status = 'PROCESSED'
+						),
+						0
+					)
+					-
+					COALESCE(
+						(
+							SELECT SUM(w.sum)
+							FROM withdrawals w
+							WHERE w.user_id = $1
+						),
+						0
+					)
+				)::bigint AS balance
 			),
 			ins AS (
-			INSERT INTO withdrawals (user_id, order_number, sum)
-			SELECT
-				$1,
-				$2,
-				$3::bigint
-			FROM bal
-			WHERE bal.balance >= $3::bigint
-			RETURNING id
+				INSERT INTO withdrawals (user_id, order_number, sum)
+				SELECT
+					$1,
+					$2,
+					$3::bigint
+				FROM bal
+				WHERE bal.balance >= $3::bigint
+				RETURNING id
 			)
-			SELECT EXISTS(SELECT 1 FROM ins) AS ok;
+			SELECT EXISTS (SELECT 1 FROM ins) AS ok;
 		`
 
 		var ok bool

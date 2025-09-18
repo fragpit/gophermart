@@ -45,7 +45,7 @@ func runMigrations(ctx context.Context, conn *pgxpool.Pool) error {
 			CREATE TABLE IF NOT EXISTS withdrawals (
 				id SERIAL PRIMARY KEY,
 				user_id INTEGER NOT NULL REFERENCES users(id),
-				order_number VARCHAR(255) NOT NULL,
+				order_number VARCHAR(255) UNIQUE NOT NULL,
 				sum BIGINT NOT NULL, -- stored in kopeks
 				processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 			);

@@ -106,17 +106,41 @@ func TestBalanceWithdrawHandler(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		reqBody     balanceWithdrawRequest
+		reqBody     map[string]any
 		contentType string
 		mockData    mockData
 		authUserID  int
 		wantCode    int
 	}{
 		{
-			name: "success",
-			reqBody: balanceWithdrawRequest{
-				OrderNum: orderNumByLuhn,
-				Sum:      1,
+			name: "success (sum X)",
+			reqBody: map[string]any{
+				"order": orderNumByLuhn,
+				"sum":   1,
+			},
+			mockData: mockData{
+				err: nil,
+			},
+			authUserID: 1,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name: "success (sum X.X)",
+			reqBody: map[string]any{
+				"order": orderNumByLuhn,
+				"sum":   1.1,
+			},
+			mockData: mockData{
+				err: nil,
+			},
+			authUserID: 1,
+			wantCode:   http.StatusOK,
+		},
+		{
+			name: "success (sum X.XX)",
+			reqBody: map[string]any{
+				"order": orderNumByLuhn,
+				"sum":   1.11,
 			},
 			mockData: mockData{
 				err: nil,
@@ -126,9 +150,9 @@ func TestBalanceWithdrawHandler(t *testing.T) {
 		},
 		{
 			name: "error not enough minerals",
-			reqBody: balanceWithdrawRequest{
-				OrderNum: orderNumByLuhn,
-				Sum:      1,
+			reqBody: map[string]any{
+				"order": orderNumByLuhn,
+				"sum":   1,
 			},
 			mockData: mockData{
 				err: model.ErrInsufficientPoints,
@@ -138,9 +162,9 @@ func TestBalanceWithdrawHandler(t *testing.T) {
 		},
 		{
 			name: "error empty order number",
-			reqBody: balanceWithdrawRequest{
-				OrderNum: "",
-				Sum:      1,
+			reqBody: map[string]any{
+				"order": "",
+				"sum":   1,
 			},
 			mockData: mockData{
 				err: model.ErrInsufficientPoints,
@@ -150,12 +174,36 @@ func TestBalanceWithdrawHandler(t *testing.T) {
 		},
 		{
 			name: "error invalid order number",
-			reqBody: balanceWithdrawRequest{
-				OrderNum: "123123",
-				Sum:      1,
+			reqBody: map[string]any{
+				"order": "123123",
+				"sum":   1,
 			},
 			mockData: mockData{
 				err: model.ErrInsufficientPoints,
+			},
+			authUserID: 1,
+			wantCode:   http.StatusUnprocessableEntity,
+		},
+		{
+			name: "error negative sum",
+			reqBody: map[string]any{
+				"order": orderNumByLuhn,
+				"sum":   -1,
+			},
+			mockData: mockData{
+				err: nil,
+			},
+			authUserID: 1,
+			wantCode:   http.StatusUnprocessableEntity,
+		},
+		{
+			name: "error zero sum",
+			reqBody: map[string]any{
+				"order": orderNumByLuhn,
+				"sum":   0,
+			},
+			mockData: mockData{
+				err: nil,
 			},
 			authUserID: 1,
 			wantCode:   http.StatusUnprocessableEntity,
@@ -168,9 +216,9 @@ func TestBalanceWithdrawHandler(t *testing.T) {
 		},
 		{
 			name: "fail internal",
-			reqBody: balanceWithdrawRequest{
-				OrderNum: orderNumByLuhn,
-				Sum:      1,
+			reqBody: map[string]any{
+				"order": orderNumByLuhn,
+				"sum":   1,
 			},
 			mockData: mockData{
 				err: errors.New("db error"),
@@ -221,9 +269,7 @@ func TestBalanceWithdrawHandler(t *testing.T) {
 				"/",
 				strings.NewReader(string(b)),
 			)
-
 			req.Header.Set("Content-Type", tc.contentType)
-
 			handler.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.wantCode, rec.Code)

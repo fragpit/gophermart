@@ -177,6 +177,19 @@ func NewBalanceWithdrawHandler(svc BalanceService) http.Handler {
 			return
 		}
 
+		if !model.ValidateSum(withdrawRequest.Sum) {
+			slog.Error(
+				"failed to validate sum",
+				slog.String("error", "failed to validate sum"),
+			)
+			http.Error(
+				w,
+				"failed to validate sum",
+				http.StatusUnprocessableEntity,
+			)
+			return
+		}
+
 		if err := svc.WithdrawPoints(
 			ctx,
 			userID,
