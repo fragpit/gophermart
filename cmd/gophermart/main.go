@@ -67,20 +67,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	healthSvc := healthcheck.NewHealthcheckService(pgStorage.Health)
-	authSvc := auth.NewAuthService(pgStorage.Users, cfg.JWTSecret, cfg.JWTTTL)
-	ordersSvc := orders.NewOrdersService(pgStorage.Orders)
-	balanceSvc := balance.NewBalanceService(pgStorage.Balance)
-	withdrawalsSvc := withdrawals.NewWithdrawalsService(pgStorage.Withdrawals)
-
-	routerDeps := router.StorageDeps{
-		JWTSecret:          cfg.JWTSecret,
-		HealthService:      healthSvc,
-		AuthService:        authSvc,
-		OrdersService:      ordersSvc,
-		BalanceService:     balanceSvc,
-		WithdrawalsService: withdrawalsSvc,
-	}
+	routerDeps := buildRouterDeps(cfg, pgStorage)
 	router := router.NewRouter(routerDeps)
 
 	wg := &sync.WaitGroup{}
@@ -130,4 +117,29 @@ func main() {
 	}
 
 	slog.Info("app shut down successfully")
+}
+
+func buildRouterDeps(
+	cfg *config.Config,
+	st *postgresql.Repositories,
+) router.StorageDeps {
+	healthSvc := healthcheck.NewHealthcheckService(st.Health)
+	authSvc := auth.NewAuthService(
+		st.Users,
+		cfg.JWTSecret,
+		cfg.JWTTTL,
+	)
+	ordersSvc := orders.NewOrdersService(st.Orders)
+	balanceSvc := balance.NewBalanceService(st.Balance)
+	withdrawalsSvc := withdrawals.NewWithdrawalsService(
+		st.Withdrawals,
+	)
+	return router.StorageDeps{
+		JWTSecret:          cfg.JWTSecret,
+		HealthService:      healthSvc,
+		AuthService:        authSvc,
+		OrdersService:      ordersSvc,
+		BalanceService:     balanceSvc,
+		WithdrawalsService: withdrawalsSvc,
+	}
 }
