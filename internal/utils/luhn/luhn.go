@@ -4,13 +4,15 @@ import (
 	"strconv"
 )
 
-func ValidateNumber(num int) bool {
-	numS := strconv.Itoa(num)
+func ValidateNumber(num string) bool {
 	sum := 0
-	parity := len(numS) % 2
+	parity := len(num) % 2
 
-	for i := 0; i < len(numS); i++ {
-		digit, _ := strconv.Atoi(string(numS[i]))
+	for i := 0; i < len(num); i++ {
+		digit, err := strconv.Atoi(string(num[i]))
+		if err != nil {
+			return false
+		}
 		if i%2 == parity {
 			digit *= 2
 			if digit > 9 {

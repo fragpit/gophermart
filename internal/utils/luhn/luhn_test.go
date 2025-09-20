@@ -4,7 +4,7 @@ import "testing"
 
 func TestValidateNumber(t *testing.T) {
 	type args struct {
-		num int
+		num string
 	}
 	tests := []struct {
 		name string
@@ -14,14 +14,14 @@ func TestValidateNumber(t *testing.T) {
 		{
 			name: "valid number",
 			args: args{
-				num: 79927398713,
+				num: "79927398713",
 			},
 			want: true,
 		},
 		{
 			name: "invalid number",
 			args: args{
-				num: 799277398713,
+				num: "799277398713",
 			},
 			want: false,
 		},

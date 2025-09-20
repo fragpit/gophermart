@@ -5,20 +5,30 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/fragpit/gophermart/internal/model"
+	collector "github.com/fragpit/gophermart/internal/service/accrual-collector"
+	"github.com/fragpit/gophermart/internal/service/healthcheck"
 	"github.com/fragpit/gophermart/internal/utils/retry"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// var _ repository.Repository = (*Storage)(nil)
-
-type Storage struct {
-	DB      *pgxpool.Pool
+type baseRepo struct {
+	db      *pgxpool.Pool
 	retrier *retry.Retrier
 }
 
-func NewStorage(ctx context.Context, dbDSN string) (*Storage, error) {
+type Repositories struct {
+	Health      healthcheck.HealthRepository
+	Users       model.UsersRepository
+	Orders      model.OrdersRepository
+	Balance     model.BalanceRepository
+	Withdrawals model.WithdrawalsRepository
+	Collector   collector.CollectorRepository
+}
+
+func NewStorage(ctx context.Context, dbDSN string) (*Repositories, error) {
 	db, err := pgxpool.New(ctx, dbDSN)
 	if err != nil {
 		return nil, fmt.Errorf("error creating pgxpool: %w", err)
@@ -26,6 +36,11 @@ func NewStorage(ctx context.Context, dbDSN string) (*Storage, error) {
 
 	if err := db.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("db ping error: %w", err)
+	}
+
+	_, err = db.Exec(ctx, "SET timezone = 'UTC'")
+	if err != nil {
+		return nil, fmt.Errorf("error setting timezone to UTC: %w", err)
 	}
 
 	if err := runMigrations(ctx, db); err != nil {
@@ -43,10 +58,18 @@ func NewStorage(ctx context.Context, dbDSN string) (*Storage, error) {
 		return errors.As(err, &connErr)
 	}
 
-	retrier := retry.New(isRetryable)
+	b := baseRepo{
+		db:      db,
+		retrier: retry.New(isRetryable),
+	}
 
-	return &Storage{
-		DB:      db,
-		retrier: retrier,
-	}, nil
+	repos := &Repositories{
+		Health:      &HealthRepo{baseRepo: b},
+		Users:       &UsersRepo{baseRepo: b},
+		Orders:      &OrdersRepo{baseRepo: b},
+		Balance:     &BalanceRepo{baseRepo: b},
+		Withdrawals: &WithdrawalsRepo{baseRepo: b},
+		Collector:   &CollectorRepo{baseRepo: b},
+	}
+	return repos, nil
 }

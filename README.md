@@ -1,25 +1,66 @@
-# go-musthave-diploma-tpl
+# Gophermart project
 
-Шаблон репозитория для индивидуального дипломного проекта курса «Go-разработчик»
+## Операции с сервисом
 
-## Начало работы
+Базовые действия с сервисом настроены в Taskfile.yml (https://taskfile.dev/)
 
-1. Склонируйте репозиторий в любую подходящую директорию на вашем компьютере.
-2. В корне репозитория выполните команду `go mod init <name>` (где `<name>` — адрес вашего репозитория на GitHub без
-   префикса `https://`) для создания модуля
-
-## Обновление шаблона
-
-Чтобы иметь возможность получать обновления автотестов и других частей шаблона, выполните команду:
+### Запуск сервиса
 
 ```sh
-git remote add -m master template https://github.com/yandex-praktikum/go-musthave-diploma-tpl.git
+task compose-up
 ```
 
-Для обновления кода автотестов выполните команду:
+### Очистка БД
 
 ```sh
-git fetch template && git checkout template/master .github
+task compose-clean
 ```
 
-Затем добавьте полученные изменения в свой репозиторий.
+### Запуск автотестов
+
+```sh
+task autotests
+```
+
+### Создать рандомный JWT secret
+
+```sh
+export JWT_SECRET="$(openssl rand -base64 32)"
+```
+
+### Получить токен через метод Login
+
+```sh
+JWT_TOKEN=$(curl -s -X POST http://localhost:8080/api/user/login -H 'Content-type: application/json' --data '{"login": "test_user", "password": "test_password_111"}' | jq -r '.token')
+```
+
+### Полезные запросы в accrual
+
+```sh
+# POST /api/goods
+curl -s -X POST 'http://localhost:8081/api/goods' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "match": "Test",
+    "reward": 10,
+    "reward_type": "%"
+  }'
+
+# POST /api/orders
+curl -s -X POST 'http://localhost:8081/api/orders' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "order": "79927398713",
+    "goods": [
+      {
+        "description": "Чайник Test",
+        "price": 27.3
+      }
+    ]
+  }'
+
+# GET /api/orders/79927398713
+curl -s -X GET 'http://localhost:8081/api/orders/79927398713' \
+  -H 'Content-Length: 0' \
+  -H 'Accept: application/json'
+```
